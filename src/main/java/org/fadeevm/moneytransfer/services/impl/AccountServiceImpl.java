@@ -46,7 +46,7 @@ public class AccountServiceImpl implements AccountService {
             MoneyUtils.checkAmountParameter(amount, to.getCurrency());
             MoneyUtils.checkAmountParameter(amount, from.getCurrency());
             Preconditions.checkArgument(from.getAmount().isGreaterThanOrEqualTo(amount),
-                    "amount of money on sender account should be bigger or equal to transfer amount {}", amount);
+                    "amount of money on sender account should be bigger or equal to transfer amount %s", amount);
 
             MonetaryAmount subtract = from.getAmount().subtract(amount);
             from.setAmount(subtract);
