@@ -2,6 +2,8 @@ package org.fadeevm.moneytransfer;
 
 
 import okhttp3.*;
+import org.fadeevm.moneytransfer.models.Account;
+import org.fadeevm.moneytransfer.services.AccountStorageService;
 import org.json.JSONException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -22,10 +24,13 @@ public class ApiTest {
     private static String BASE_URL;
     private static int PORT;
     private static OkHttpClient client;
+    private static AccountStorageService accountStorageService;
 
     @BeforeAll
     public static void startServer() {
-        MoneyTransferService.main(null);
+        MoneyTransferService moneyTransferService = new MoneyTransferService();
+        moneyTransferService.start();
+        accountStorageService = moneyTransferService.getStorageService();
         PORT = Spark.port();
         client = new OkHttpClient();
         BASE_URL = "http://localhost:" + PORT;
@@ -71,6 +76,28 @@ public class ApiTest {
         );
 
         JSONAssert.assertEquals(response.body().string(), ACCOUNT_DTO_INITIAL, IGNORE_ID_COMPARATOR);
+    }
 
+    @Test
+    void checkGetAccount() throws IOException, JSONException {
+        Account account = new Account(12.99, "USD");
+        accountStorageService.addAccount(account);
+        final String ACCOUNT_DTO_INITIAL = "{\"id\":\"" + account.getId() + "\",\"currency\":\"USD\",\"amount\":12.99}";
+
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/v1/account/" + account.getId())
+                .get()
+                .build();
+
+        Call call = client.newCall(request);
+        Response response = call.execute();
+
+        Assertions.assertAll("assert http params",
+                () -> Assertions.assertEquals(response.code(), 200),
+                () -> Assertions.assertEquals(response.header("Content-Type"), "application/json"),
+                () -> Assertions.assertNotNull(response.body())
+        );
+
+        JSONAssert.assertEquals(response.body().string(), ACCOUNT_DTO_INITIAL, false);
     }
 }

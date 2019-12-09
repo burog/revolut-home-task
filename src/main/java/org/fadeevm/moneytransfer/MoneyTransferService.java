@@ -1,6 +1,7 @@
 package org.fadeevm.moneytransfer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.fadeevm.moneytransfer.dto.v1.AccountDto;
 import org.fadeevm.moneytransfer.exceptions.NotFoundException;
@@ -16,13 +17,27 @@ import org.javamoney.moneta.Money;
 import static spark.Spark.*;
 
 @Slf4j
+@Getter
 public class MoneyTransferService {
 
+    private final HealthIndicator healthIndicator;
+    private final AccountStorageService storageService;
+    private final AccountService accountService;
+    private final ObjectMapper mapper;
+
+    public MoneyTransferService() {
+        this.healthIndicator = (request, response) -> "OK";
+        this.storageService = new AccountStorageServiceImpl();
+        this.accountService = new AccountServiceImpl(storageService);
+        this.mapper = new ObjectMapper();
+    }
+
     public static void main(String[] args) {
-        HealthIndicator healthIndicator = (request, response) -> "OK";
-        AccountStorageService storageService = new AccountStorageServiceImpl();
-        AccountService accountService = new AccountServiceImpl(storageService);
-        ObjectMapper mapper = new ObjectMapper();
+        MoneyTransferService moneyTransferService = new MoneyTransferService();
+        moneyTransferService.start();
+    }
+
+    void start() {
 
         Spark.createServerWithRequestLog();
 
@@ -72,6 +87,6 @@ public class MoneyTransferService {
             response.status(400);
             response.body("Illegal input: " + exception.getMessage());
         });
-
     }
+
 }
