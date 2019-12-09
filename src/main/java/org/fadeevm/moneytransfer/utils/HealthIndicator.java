@@ -1,4 +1,4 @@
-package org.fadeevm.moneytransfer;
+package org.fadeevm.moneytransfer.utils;
 
 import spark.Request;
 import spark.Response;
