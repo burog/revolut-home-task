@@ -80,12 +80,14 @@ public class MoneyTransferService {
         exception(NotFoundException.class, (exception, request, response) -> {
             log.info("handling error with status 404", exception);
             response.status(404);
-            response.body("Not found: " + exception.getMessage());
+            response.type("application/json");
+            response.body("{\"Error\":\"Not found: " + exception.getMessage() + "\"}");
         });
         exception(IllegalArgumentException.class, (exception, request, response) -> {
             log.info("handling error with status 400", exception);
             response.status(400);
-            response.body("Illegal input: " + exception.getMessage());
+            response.type("application/json");
+            response.body("{\"Error\":\"Illegal input: " + exception.getMessage() + "\"}");
         });
     }
 

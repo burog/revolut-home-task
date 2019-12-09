@@ -99,4 +99,22 @@ public class ApiTest {
 
         JSONAssert.assertEquals(response.body().string(), accountJson, false);
     }
+
+    @Test
+    void checkGetAccountByInvalidId() throws IOException, JSONException {
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/v1/account/WRONG_ID")
+                .get()
+                .build();
+
+        Call call = client.newCall(request);
+        Response response = call.execute();
+
+        Assertions.assertAll("assert http params",
+                () -> Assertions.assertEquals(response.code(), 404),
+                () -> Assertions.assertEquals(response.header("Content-Type"), "application/json"),
+                () -> Assertions.assertNotNull(response.body())
+        );
+        JSONAssert.assertEquals(response.body().string(), "{\"Error\":\"Not found: Resource with id #WRONG_ID\"}", false);
+    }
 }
