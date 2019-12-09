@@ -22,7 +22,6 @@ public class ApiTest {
     private static final CustomComparator IGNORE_ID_COMPARATOR = new CustomComparator(JSONCompareMode.LENIENT,
             Customization.customization("id", (o1, o2) -> true));
     private static String BASE_URL;
-    private static int PORT;
     private static OkHttpClient client;
     private static AccountStorageService accountStorageService;
 
@@ -31,7 +30,7 @@ public class ApiTest {
         MoneyTransferService moneyTransferService = new MoneyTransferService();
         moneyTransferService.start();
         accountStorageService = moneyTransferService.getStorageService();
-        PORT = Spark.port();
+        int PORT = Spark.port();
         client = new OkHttpClient();
         BASE_URL = "http://localhost:" + PORT;
 
@@ -59,7 +58,7 @@ public class ApiTest {
 
     @Test
     void checkCreatingNewAccount() throws IOException, JSONException {
-        final String ACCOUNT_DTO_INITIAL = "{\"id\":\"SOME_ID\",\"currency\":\"USD\",\"amount\":0.0}";
+        final String account = "{\"id\":\"SOME_ID\",\"currency\":\"USD\",\"amount\":0.0}";
 
         Request request = new Request.Builder()
                 .url(BASE_URL + "/v1/account")
@@ -75,14 +74,14 @@ public class ApiTest {
                 () -> Assertions.assertNotNull(response.body())
         );
 
-        JSONAssert.assertEquals(response.body().string(), ACCOUNT_DTO_INITIAL, IGNORE_ID_COMPARATOR);
+        JSONAssert.assertEquals(response.body().string(), account, IGNORE_ID_COMPARATOR);
     }
 
     @Test
     void checkGetAccount() throws IOException, JSONException {
         Account account = new Account(12.99, "USD");
         accountStorageService.addAccount(account);
-        final String ACCOUNT_DTO_INITIAL = "{\"id\":\"" + account.getId() + "\",\"currency\":\"USD\",\"amount\":12.99}";
+        final String accountJson = "{\"id\":\"" + account.getId() + "\",\"currency\":\"USD\",\"amount\":12.99}";
 
         Request request = new Request.Builder()
                 .url(BASE_URL + "/v1/account/" + account.getId())
@@ -98,6 +97,6 @@ public class ApiTest {
                 () -> Assertions.assertNotNull(response.body())
         );
 
-        JSONAssert.assertEquals(response.body().string(), ACCOUNT_DTO_INITIAL, false);
+        JSONAssert.assertEquals(response.body().string(), accountJson, false);
     }
 }
