@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.fadeevm.moneytransfer.models.Account;
 import org.fadeevm.moneytransfer.services.AccountService;
 import org.fadeevm.moneytransfer.services.AccountStorageService;
-import org.javamoney.moneta.Money;
 import org.javamoney.moneta.spi.MoneyUtils;
 
 import javax.money.MonetaryAmount;
@@ -30,7 +29,7 @@ public class AccountServiceImpl implements AccountService {
         try {
             return account.increaseAmount(amount);
         } catch (Exception e) {
-            log.error("cant add cache deposit", e);
+            log.error("cant add cache deposit {} for account {}", amount, account, e);
             return false;
         }
     }
@@ -52,7 +51,7 @@ public class AccountServiceImpl implements AccountService {
             }
             return true;
         } catch (Exception e) {
-            log.error("Error during transfer money", e);
+            log.error("Error during transfer money {} from {} to {} accounts", amount, from, to, e);
             return false;
         }
     }

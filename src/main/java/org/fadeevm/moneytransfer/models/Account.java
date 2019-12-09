@@ -47,7 +47,7 @@ public class Account {
         try {
             casAmount.getAndUpdate(this, monetaryAmount -> this.amount.add(amount));
         } catch (Exception e) {
-            log.warn("can't subtract amount for account {}", getId());
+            log.warn("can't increase amount {} for account {}", amount, this, e);
             return false;
         }
         return true;
@@ -58,7 +58,7 @@ public class Account {
         try {
             newValue = casAmount.updateAndGet(this, monetaryAmount -> this.amount.subtract(amount));
         } catch (Exception e) {
-            log.warn("can't subtract amount for account {}", getId());
+            log.warn("Can't decrease amount {} for account {}", amount, this, e);
             return false;
         }
 
