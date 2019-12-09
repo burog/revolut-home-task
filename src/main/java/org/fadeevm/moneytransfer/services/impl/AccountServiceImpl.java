@@ -13,8 +13,6 @@ import javax.money.MonetaryAmount;
 @Slf4j
 public class AccountServiceImpl implements AccountService {
 
-    public static final String DEFAULT_CURRENCY_CODE = "USD";
-    public static final int DEFAULT_AMOUNT = 0;
     private final AccountStorageService accountStorageService;
 
     public AccountServiceImpl(AccountStorageService accountStorageService) {
@@ -24,35 +22,34 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Account createAccount() {
         Account account = new Account();
-        account.setAmount(Money.of(DEFAULT_AMOUNT, DEFAULT_CURRENCY_CODE));
         accountStorageService.addAccount(account);
         return account;
     }
 
     public boolean addCacheDeposit(Account account, MonetaryAmount amount) {
         try {
-            account.setAmount(account.getAmount().add(amount));
+            return account.increaseAmount(amount);
         } catch (Exception e) {
             log.error("cant add cache deposit", e);
             return false;
         }
-        return true;
     }
 
     @Override
     public boolean transferMoney(Account from, Account to, MonetaryAmount amount) {
         try {
-            //TODO add lock or CAS
             MoneyUtils.checkAmountParameter(amount, to.getCurrency());
             MoneyUtils.checkAmountParameter(amount, from.getCurrency());
             Preconditions.checkArgument(from.getAmount().isGreaterThanOrEqualTo(amount),
                     "amount of money on sender account should be bigger or equal to transfer amount %s", amount);
 
-            MonetaryAmount subtract = from.getAmount().subtract(amount);
-            from.setAmount(subtract);
-
-            MonetaryAmount add = to.getAmount().add(amount);
-            to.setAmount(add);
+            if (!from.decreaseAmount(amount)) {
+                return false;
+            }
+            if (!to.increaseAmount(amount)) {
+                from.decreaseAmount(amount);
+                return false;
+            }
             return true;
         } catch (Exception e) {
             log.error("Error during transfer money", e);
