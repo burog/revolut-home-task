@@ -117,4 +117,32 @@ public class ApiTest {
         );
         JSONAssert.assertEquals(response.body().string(), "{\"Error\":\"Not found: Resource with id #WRONG_ID\"}", false);
     }
+
+    @Test
+    void checkDeposit() throws IOException {
+        Account account = new Account();
+        accountStorageService.addAccount(account);
+
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/v1/account/" + account.getId() + "/deposit/12.99/USD")
+                .patch(RequestBody.create(null, new byte[]{}))
+                .build();
+
+        Call call = client.newCall(request);
+        Response response = call.execute();
+
+        Assertions.assertAll("assert http params",
+                () -> Assertions.assertEquals(200, response.code()),
+                () -> Assertions.assertEquals(response.header("Content-Type"), "application/json"),
+                () -> Assertions.assertNotNull(response.body())
+        );
+        Assertions.assertEquals(response.body().string(), "");
+    }
+
+    //TODO add negative tests
+    // - invalid currency
+    // - invalid account id
+    // - invalid amount (0 , -1, more that account have)
+
+
 }

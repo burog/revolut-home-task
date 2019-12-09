@@ -75,7 +75,11 @@ public class MoneyTransferService {
 
             Money money = Money.of(amount, currency);
             response.type("application/json");
-            return mapper.writeValueAsString(accountService.addCacheDeposit(account, money));
+            boolean isSuccessfulAddedDeposit = accountService.addCacheDeposit(account, money);
+            if (!isSuccessfulAddedDeposit) {
+                throw new IllegalStateException("Can't add cache deposit for account #" + id);
+            }
+            return "";
         });
         exception(NotFoundException.class, (exception, request, response) -> {
             log.info("handling error with status 404", exception);
