@@ -51,9 +51,9 @@ public class ApiTest {
         Call call = client.newCall(request);
         Response response = call.execute();
 
-        Assertions.assertEquals(response.code(), 200);
+        Assertions.assertEquals(200, response.code());
         Assertions.assertNotNull(response.body());
-        Assertions.assertEquals(response.body().string(), "OK");
+        Assertions.assertEquals("OK", response.body().string());
     }
 
     @Test
@@ -69,12 +69,12 @@ public class ApiTest {
         Response response = call.execute();
 
         Assertions.assertAll("assert http params",
-                () -> Assertions.assertEquals(response.code(), 201),
-                () -> Assertions.assertEquals(response.header("Content-Type"), "application/json"),
+                () -> Assertions.assertEquals(201, response.code()),
+                () -> Assertions.assertEquals("application/json", response.header("Content-Type")),
                 () -> Assertions.assertNotNull(response.body())
         );
 
-        JSONAssert.assertEquals(response.body().string(), account, IGNORE_ID_COMPARATOR);
+        JSONAssert.assertEquals(account, response.body().string(), IGNORE_ID_COMPARATOR);
     }
 
     @Test
@@ -92,12 +92,12 @@ public class ApiTest {
         Response response = call.execute();
 
         Assertions.assertAll("assert http params",
-                () -> Assertions.assertEquals(response.code(), 200),
-                () -> Assertions.assertEquals(response.header("Content-Type"), "application/json"),
+                () -> Assertions.assertEquals(200, response.code()),
+                () -> Assertions.assertEquals("application/json", response.header("Content-Type")),
                 () -> Assertions.assertNotNull(response.body())
         );
 
-        JSONAssert.assertEquals(response.body().string(), accountJson, false);
+        JSONAssert.assertEquals(accountJson, response.body().string(), false);
     }
 
     @Test
@@ -111,11 +111,11 @@ public class ApiTest {
         Response response = call.execute();
 
         Assertions.assertAll("assert http params",
-                () -> Assertions.assertEquals(response.code(), 404),
-                () -> Assertions.assertEquals(response.header("Content-Type"), "application/json"),
+                () -> Assertions.assertEquals(404, response.code()),
+                () -> Assertions.assertEquals("application/json", response.header("Content-Type")),
                 () -> Assertions.assertNotNull(response.body())
         );
-        JSONAssert.assertEquals(response.body().string(), "{\"Error\":\"Not found: Resource with id #WRONG_ID\"}", false);
+        JSONAssert.assertEquals("{\"Error\":\"Not found: Resource with id #WRONG_ID\"}", response.body().string(), false);
     }
 
     @Test
@@ -133,10 +133,11 @@ public class ApiTest {
 
         Assertions.assertAll("assert http params",
                 () -> Assertions.assertEquals(200, response.code()),
-                () -> Assertions.assertEquals(response.header("Content-Type"), "application/json"),
+                () -> Assertions.assertEquals("application/json", response.header("Content-Type")),
                 () -> Assertions.assertNotNull(response.body())
         );
-        Assertions.assertEquals(response.body().string(), "");
+        Assertions.assertEquals("", response.body().string());
+        Assertions.assertEquals(Money.of(12.99, "USD"), accountStorageService.getAccount(account.getId()).getAmount());
     }
 
     //TODO add negative tests
