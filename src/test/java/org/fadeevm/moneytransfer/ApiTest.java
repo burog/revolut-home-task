@@ -4,6 +4,7 @@ package org.fadeevm.moneytransfer;
 import okhttp3.*;
 import org.fadeevm.moneytransfer.models.Account;
 import org.fadeevm.moneytransfer.services.AccountStorageService;
+import org.javamoney.moneta.Money;
 import org.json.JSONException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -145,5 +146,29 @@ public class ApiTest {
     // - invalid account id
     // - invalid amount (0 , -1, more that account have)
 
+    @Test
+    void checkTransfer() throws IOException {
+        Account accountFrom = new Account(100, "USD");
+        Account accountTo = new Account();
+        accountStorageService.addAccount(accountFrom);
+        accountStorageService.addAccount(accountTo);
+
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/v1/transfer/" + accountFrom.getId() + "/" + accountTo.getId() + "/50.99")
+                .patch(RequestBody.create(null, new byte[]{}))
+                .build();
+
+        Call call = client.newCall(request);
+        Response response = call.execute();
+
+        Assertions.assertAll("assert http params",
+                () -> Assertions.assertEquals(200, response.code()),
+                () -> Assertions.assertEquals("application/json", response.header("Content-Type")),
+                () -> Assertions.assertNotNull(response.body())
+        );
+        Assertions.assertEquals("", response.body().string());
+        Assertions.assertEquals(Money.of(49.01, "USD"), accountStorageService.getAccount(accountFrom.getId()).getAmount());
+        Assertions.assertEquals(Money.of(50.99, "USD"), accountStorageService.getAccount(accountTo.getId()).getAmount());
+    }
 
 }

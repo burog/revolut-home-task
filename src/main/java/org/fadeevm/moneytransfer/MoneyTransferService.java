@@ -81,6 +81,30 @@ public class MoneyTransferService {
             }
             return "";
         });
+        patch("/v1/transfer/:from/:to/:amount", (request, response) -> {
+            String accountIdFrom = request.params().get(":from");
+            String accountIdTo = request.params().get(":to");
+
+            String amountStr = request.params().getOrDefault(":amount", "0");
+            float amount = Float.parseFloat(amountStr);
+
+            Account accountFrom = storageService.getAccount(accountIdFrom);
+            Account accountTo = storageService.getAccount(accountIdTo);
+
+            if (Account.UNKNOWN_ACCOUNT.equals(accountTo)) {
+                throw new NotFoundException(accountIdTo);
+            } else if (Account.UNKNOWN_ACCOUNT.equals(accountFrom)) {
+                throw new NotFoundException(accountIdFrom);
+            }
+
+            Money money = Money.of(amount, accountFrom.getCurrency());
+            response.type("application/json");
+            boolean isSuccessfulAddedDeposit = accountService.transferMoney(accountFrom, accountTo, money);
+            if (!isSuccessfulAddedDeposit) {
+                throw new IllegalStateException("Can't transfer money " + money + " from " + accountFrom.getId() + " to " + accountTo.getId());
+            }
+            return "";
+        });
         exception(NotFoundException.class, (exception, request, response) -> {
             log.info("handling error with status 404", exception);
             response.status(404);
