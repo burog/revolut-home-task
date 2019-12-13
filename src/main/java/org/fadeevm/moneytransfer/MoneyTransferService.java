@@ -3,16 +3,15 @@ package org.fadeevm.moneytransfer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.fadeevm.moneytransfer.dto.v1.AccountDto;
+import org.fadeevm.moneytransfer.controller.v1.AccountController;
+import org.fadeevm.moneytransfer.exceptions.MoneyTransferExceptionHandler;
 import org.fadeevm.moneytransfer.exceptions.NotFoundException;
-import org.fadeevm.moneytransfer.models.Account;
 import org.fadeevm.moneytransfer.services.AccountService;
 import org.fadeevm.moneytransfer.services.AccountStorageService;
 import org.fadeevm.moneytransfer.services.impl.AccountServiceImpl;
 import org.fadeevm.moneytransfer.services.impl.AccountStorageServiceImpl;
 import org.fadeevm.moneytransfer.utils.HealthIndicator;
 import org.fadeevm.moneytransfer.utils.Spark;
-import org.javamoney.moneta.Money;
 
 import static spark.Spark.*;
 
@@ -24,12 +23,16 @@ public class MoneyTransferService {
     private final AccountStorageService storageService;
     private final AccountService accountService;
     private final ObjectMapper mapper;
+    private final AccountController accountController;
+    private final MoneyTransferExceptionHandler exceptionHandler;
 
     public MoneyTransferService() {
         this.healthIndicator = (request, response) -> "OK";
         this.storageService = new AccountStorageServiceImpl();
         this.accountService = new AccountServiceImpl(storageService);
         this.mapper = new ObjectMapper();
+        accountController = new AccountController(storageService, accountService, mapper);
+        exceptionHandler = new MoneyTransferExceptionHandler();
     }
 
     public static void main(String[] args) {
@@ -43,80 +46,12 @@ public class MoneyTransferService {
 
 
         get("/v1/health", healthIndicator::healthCheck);
-        get("/v1/account/:id", (request, response) -> {
-            String id = request.params().get(":id");
-            Account account = storageService.getAccount(id);
-
-            if (Account.UNKNOWN_ACCOUNT.equals(account)) {
-                throw new NotFoundException(id);
-            }
-
-            response.type("application/json");
-            AccountDto accountDto = new AccountDto(account);
-            return mapper.writeValueAsString(accountDto);
-        });
-        post("/v1/account", (request, response) -> {
-            Account account = accountService.createAccount();
-            response.status(201);
-            response.type("application/json");
-            return mapper.writeValueAsString(new AccountDto(account));
-        });
-        patch("/v1/account/:id/deposit/:amount/:currency", (request, response) -> {
-            String id = request.params().get(":id");
-
-            String amountStr = request.params().getOrDefault(":amount", "0");
-            String currency = request.params().getOrDefault(":currency", "USD");
-            float amount = Float.parseFloat(amountStr);
-
-            Account account = storageService.getAccount(id);
-            if (Account.UNKNOWN_ACCOUNT.equals(account)) {
-                throw new NotFoundException(id);
-            }
-
-            Money money = Money.of(amount, currency);
-            response.type("application/json");
-            boolean isSuccessfulAddedDeposit = accountService.addCacheDeposit(account, money);
-            if (!isSuccessfulAddedDeposit) {
-                throw new IllegalStateException("Can't add cache deposit for account #" + id);
-            }
-            return "";
-        });
-        patch("/v1/transfer/:from/:to/:amount", (request, response) -> {
-            String accountIdFrom = request.params().get(":from");
-            String accountIdTo = request.params().get(":to");
-
-            String amountStr = request.params().getOrDefault(":amount", "0");
-            float amount = Float.parseFloat(amountStr);
-
-            Account accountFrom = storageService.getAccount(accountIdFrom);
-            Account accountTo = storageService.getAccount(accountIdTo);
-
-            if (Account.UNKNOWN_ACCOUNT.equals(accountTo)) {
-                throw new NotFoundException(accountIdTo);
-            } else if (Account.UNKNOWN_ACCOUNT.equals(accountFrom)) {
-                throw new NotFoundException(accountIdFrom);
-            }
-
-            Money money = Money.of(amount, accountFrom.getCurrency());
-            response.type("application/json");
-            boolean isSuccessfulAddedDeposit = accountService.transferMoney(accountFrom, accountTo, money);
-            if (!isSuccessfulAddedDeposit) {
-                throw new IllegalStateException("Can't transfer money " + money + " from " + accountFrom.getId() + " to " + accountTo.getId());
-            }
-            return "";
-        });
-        exception(NotFoundException.class, (exception, request, response) -> {
-            log.info("handling error with status 404", exception);
-            response.status(404);
-            response.type("application/json");
-            response.body("{\"Error\":\"Not found: " + exception.getMessage() + "\"}");
-        });
-        exception(IllegalArgumentException.class, (exception, request, response) -> {
-            log.info("handling error with status 400", exception);
-            response.status(400);
-            response.type("application/json");
-            response.body("{\"Error\":\"Illegal input: " + exception.getMessage() + "\"}");
-        });
+        get("/v1/account/:id", accountController::getAccount);
+        post("/v1/account", accountController::createAccount);
+        patch("/v1/account/:id/deposit/:amount/:currency", accountController::addDeposit);
+        patch("/v1/transfer/:from/:to/:amount", accountController::transfer);
+        exception(NotFoundException.class, exceptionHandler::notFoundExceptionHandler);
+        exception(IllegalArgumentException.class, exceptionHandler::illegalArgumentExceptionHandler);
     }
 
 }
